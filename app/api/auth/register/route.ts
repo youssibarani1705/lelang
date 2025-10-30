@@ -44,12 +44,24 @@ export async function POST(request: NextRequest) {
       role: "user",
     });
 
-    await setAuthCookie(token);
-
-    return NextResponse.json(
+    // Create a response and set the auth cookie explicitly on the response
+    const response = NextResponse.json(
       { message: "Registration successful", userId },
       { status: 201 }
     );
+
+    // Mirror login behavior: set cookie on the response so it is sent in production
+    response.cookies.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+
+    console.log("[Register] Set auth cookie for userId:", userId);
+
+    return response;
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json({ error: "Registration failed" }, { status: 500 });
